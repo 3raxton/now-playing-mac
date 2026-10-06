@@ -1,3 +1,8 @@
-build/dist
-build/groove.app
+build/
+.DS_Store
+*.dmg
+*.zip
 /.env
+xcuserdata/
+.env.example
+.env.example

@@ -44,7 +44,7 @@ final class AmpSonicPlayer {
 
   private let onChange: () -> Void
   private let lock = NSLock()
-  private let queue = DispatchQueue(label: "groove.ampsonic")
+  private let queue = DispatchQueue(label: "nowplaying.ampsonic")
   private var track = Track()
   private var artworkCache: [String: NSImage] = [:]
   private var pendingPlaying: Bool?

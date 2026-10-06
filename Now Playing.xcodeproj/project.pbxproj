@@ -37,9 +37,9 @@
 /* Begin PBXFileReference section */
 		A639F7A2291301F7009965A4 /* DockMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockMenuController.swift; sourceTree = "<group>"; };
 		A639F7AE29131EAD009965A4 /* DockTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockTileView.swift; sourceTree = "<group>"; };
-		A69F7A57291097B300042243 /* groove.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = groove.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A69F7A57291097B300042243 /* Now Playing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Now Playing.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A69F7A61291097B400042243 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		A69F7A63291097B400042243 /* groove.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = groove.entitlements; sourceTree = "<group>"; };
+		A69F7A63291097B400042243 /* Now Playing.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Now Playing.entitlements"; sourceTree = "<group>"; };
 		A69F7A6B291097E000042243 /* DockData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DockData.swift; sourceTree = "<group>"; };
 		A69F7A6D291097E000042243 /* DockViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DockViewController.swift; sourceTree = "<group>"; };
 		A69F7A70291097E000042243 /* Applescript.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Applescript.swift; sourceTree = "<group>"; };
@@ -78,7 +78,7 @@
 		A69F7A4E291097B300042243 = {
 			isa = PBXGroup;
 			children = (
-				A69F7A59291097B300042243 /* groove */,
+				A69F7A59291097B300042243 /* Now Playing */,
 				A69F7A58291097B300042243 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -86,24 +86,24 @@
 		A69F7A58291097B300042243 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A69F7A57291097B300042243 /* groove.app */,
+				A69F7A57291097B300042243 /* Now Playing.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A69F7A59291097B300042243 /* groove */ = {
+		A69F7A59291097B300042243 /* Now Playing */ = {
 			isa = PBXGroup;
 			children = (
 				A69F7A902910981900042243 /* DefaultValues.plist */,
 				A69F7A882910981900042243 /* en.lproj */,
 				A69F7A912910981900042243 /* fr.lproj */,
 				A69F7A8D2910981900042243 /* main.swift */,
-				A69F7A63291097B400042243 /* groove.entitlements */,
+				A69F7A63291097B400042243 /* Now Playing.entitlements */,
 				A69F7AA829109A8C00042243 /* Assets.xcassets */,
 				A69F7A69291097E000042243 /* Sources */,
 				A69F7A60291097B400042243 /* Preview Content */,
 			);
-			path = groove;
+			path = "Now Playing";
 			sourceTree = "<group>";
 		};
 		A69F7A60291097B400042243 /* Preview Content */ = {
@@ -205,9 +205,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A69F7A56291097B300042243 /* groove */ = {
+		A69F7A56291097B300042243 /* Now Playing */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A69F7A66291097B400042243 /* Build configuration list for PBXNativeTarget "groove" */;
+			buildConfigurationList = A69F7A66291097B400042243 /* Build configuration list for PBXNativeTarget "Now Playing" */;
 			buildPhases = (
 				A69F7A53291097B300042243 /* Sources */,
 				A69F7A54291097B300042243 /* Frameworks */,
@@ -217,13 +217,13 @@
 			);
 			dependencies = (
 			);
-			name = groove;
+			name = "Now Playing";
 			packageProductDependencies = (
 				A69F7AA4291098FA00042243 /* LXMusicPlayer */,
 				A69F7AA6291098FA00042243 /* MusicPlayer */,
 			);
-			productName = groove;
-			productReference = A69F7A57291097B300042243 /* groove.app */;
+			productName = "Now Playing";
+			productReference = A69F7A57291097B300042243 /* Now Playing.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -241,7 +241,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A69F7A52291097B300042243 /* Build configuration list for PBXProject "groove" */;
+			buildConfigurationList = A69F7A52291097B300042243 /* Build configuration list for PBXProject "Now Playing" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -258,7 +258,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A69F7A56291097B300042243 /* groove */,
+				A69F7A56291097B300042243 /* Now Playing */,
 			);
 		};
 /* End PBXProject section */
@@ -464,31 +464,31 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = groove/groove.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "Now Playing/Now Playing.entitlements";
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"groove/Preview Content\"";
-				DEVELOPMENT_TEAM = B332QU4W6R;
+				DEVELOPMENT_ASSET_PATHS = "\"Now Playing/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = groove/Info.plist;
+				INFOPLIST_FILE = "Now Playing/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Now Playing";
 				INFOPLIST_KEY_CFBundleName = "Now Playing";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Now Playing needs access to send AppleEvents to Spotify and Apple Music.";
 				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Now Playing needs access to your music library.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© Jaxson Van Doorn 2022. All Rights Reserved.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Braxton Huff. © 2022 Jaxson Van Doorn.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.jaxson.groove;
+				PRODUCT_BUNDLE_IDENTIFIER = com.braxton.nowplaying;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -500,33 +500,31 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = groove/groove.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "Now Playing/Now Playing.entitlements";
 				CODE_SIGN_IDENTITY = "-";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"groove/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"Now Playing/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = B332QU4W6R;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = groove/Info.plist;
+				INFOPLIST_FILE = "Now Playing/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Now Playing";
 				INFOPLIST_KEY_CFBundleName = "Now Playing";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Now Playing needs access to send AppleEvents to Spotify and Apple Music.";
 				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Now Playing needs access to your music library.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© Jaxson Van Doorn 2022. All Rights Reserved.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Braxton Huff. © 2022 Jaxson Van Doorn.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.jaxson.groove;
+				PRODUCT_BUNDLE_IDENTIFIER = com.braxton.nowplaying;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -537,7 +535,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A69F7A52291097B300042243 /* Build configuration list for PBXProject "groove" */ = {
+		A69F7A52291097B300042243 /* Build configuration list for PBXProject "Now Playing" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A69F7A64291097B400042243 /* Debug */,
@@ -546,7 +544,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A69F7A66291097B400042243 /* Build configuration list for PBXNativeTarget "groove" */ = {
+		A69F7A66291097B400042243 /* Build configuration list for PBXNativeTarget "Now Playing" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A69F7A67291097B400042243 /* Debug */,
