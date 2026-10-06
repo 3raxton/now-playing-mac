@@ -23,7 +23,6 @@ class DockController {
 
   init() {
     self.info = MusicInfo(self.updateTile)
-    self.updateTile()
   }
   
   func destroy() {

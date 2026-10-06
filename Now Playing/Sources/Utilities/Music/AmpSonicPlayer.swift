@@ -142,7 +142,7 @@ final class AmpSonicPlayer {
   }
 
   private func watchPlaybackDirectory() {
-    let path = Self.playbackDirectory().path
+    guard let path = Self.playbackDirectory()?.path else { return }
     let fd = open(path, O_EVTONLY)
     guard fd >= 0 else { return }
     let source = DispatchSource.makeFileSystemObjectSource(
@@ -218,7 +218,7 @@ final class AmpSonicPlayer {
 
   private func load() -> Track {
     guard Self.isRunning() else { return Track() }
-    let directory = Self.playbackDirectory()
+    guard let directory = Self.playbackDirectory() else { return Track() }
     guard let urls = try? FileManager.default.contentsOfDirectory(
       at: directory,
       includingPropertiesForKeys: [.contentModificationDateKey]
@@ -265,7 +265,8 @@ final class AmpSonicPlayer {
   }
 
   static func isPlaying() -> Bool {
-    let directory = playbackDirectory()
+    guard isRunning() else { return false }
+    guard let directory = playbackDirectory() else { return false }
     guard let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else {
       return false
     }
@@ -289,7 +290,8 @@ final class AmpSonicPlayer {
     let key = "\(accountID)|\(artworkID)"
     if let cached = artworkCache[key] { return cached }
     let digest = SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
-    let url = Self.supportDirectory()
+    guard let support = Self.supportDirectory() else { return nil }
+    let url = support
       .appendingPathComponent("Artwork", isDirectory: true)
       .appendingPathComponent(accountID, isDirectory: true)
       .appendingPathComponent(digest)
@@ -304,11 +306,78 @@ final class AmpSonicPlayer {
     return image
   }
 
-  private static func playbackDirectory() -> URL {
-    supportDirectory().appendingPathComponent("Playback", isDirectory: true)
+  private static let bookmarkKey = "ampSonicSupportBookmark"
+  private static let accessLock = NSLock()
+  private static var scopedSupportURL: URL?
+  private static var askedThisLaunch = false
+
+  private static func playbackDirectory() -> URL? {
+    supportDirectory()?.appendingPathComponent("Playback", isDirectory: true)
   }
 
-  private static func supportDirectory() -> URL {
+  /// Uses a saved folder approval so macOS does not ask to read AmpSonic on every launch.
+  private static func supportDirectory() -> URL? {
+    accessLock.lock()
+    if let scopedSupportURL {
+      accessLock.unlock()
+      return scopedSupportURL
+    }
+    let stored = UserDefaults.standard.data(forKey: bookmarkKey)
+    accessLock.unlock()
+
+    if let stored {
+      var stale = false
+      if let url = try? URL(
+        resolvingBookmarkData: stored,
+        options: [.withSecurityScope],
+        relativeTo: nil,
+        bookmarkDataIsStale: &stale
+      ), url.startAccessingSecurityScopedResource() {
+        accessLock.lock()
+        scopedSupportURL = url
+        accessLock.unlock()
+        if stale, let refreshed = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
+          UserDefaults.standard.set(refreshed, forKey: bookmarkKey)
+        }
+        return url
+      }
+    }
+
+    requestAccessIfNeeded()
+    return nil
+  }
+
+  private static func requestAccessIfNeeded() {
+    DispatchQueue.main.async {
+      accessLock.lock()
+      let alreadyAsked = askedThisLaunch || scopedSupportURL != nil
+      if !alreadyAsked { askedThisLaunch = true }
+      accessLock.unlock()
+      guard !alreadyAsked else { return }
+
+      let panel = NSOpenPanel()
+      panel.canChooseFiles = false
+      panel.canChooseDirectories = true
+      panel.canCreateDirectories = false
+      panel.allowsMultipleSelection = false
+      panel.showsHiddenFiles = true
+      panel.prompt = "Allow"
+      panel.message = "Allow Now Playing to read AmpSonic so the Dock can show the current track. This is only needed once."
+      panel.directoryURL = containerSupportURL()
+      NSApp.activate(ignoringOtherApps: true)
+      panel.begin { response in
+        guard response == .OK, let url = panel.url else { return }
+        guard let data = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) else { return }
+        UserDefaults.standard.set(data, forKey: bookmarkKey)
+        _ = url.startAccessingSecurityScopedResource()
+        accessLock.lock()
+        scopedSupportURL = url
+        accessLock.unlock()
+      }
+    }
+  }
+
+  private static func containerSupportURL() -> URL {
     FileManager.default.homeDirectoryForCurrentUser
       .appendingPathComponent("Library/Containers", isDirectory: true)
       .appendingPathComponent(bundleID, isDirectory: true)
