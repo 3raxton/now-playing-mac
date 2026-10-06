@@ -1,29 +1,72 @@
-# Now Playing
+<p align="center"><a href="https://github.com/3raxton/now-playing-dock/"
+target="_blank"><br><img width="100" src="https://camo.githubusercontent.com/1356544fa0a5d04a93242f6f6096d8ca8ef5264b435229cb21ce7e6e49399d1d/68747470733a2f2f64696d612e746f6f6c732f656d6f6a695f746f5f706e672f692f594348344e784c6e5a34395f3235362e706e67"></a></p>
+<h1 align="center">Now Playing Dock</h1>
+<p align="center">Display the current track from Spotify, Apple Music, or AmpSonic in your dock</p>
+<p align="center">
+</a>
+<a><img src="https://img.shields.io/badge/for-Spotify,%20Apple%20Music,%20&amp;%20AmpSonic-F30705.svg" alt="More Custom Apps and Extensions"></a>
+<a><img src="https://img.shields.io/badge/now-playing-0ED30E.svg" alt="Now Playing"></a>
+<a href="[https://3raxton.github.io/license](https://github.com/3raxton/now-playing-mac/blob/main/LICENSE)"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+<a href="https://hits.sh/github.com/3raxton/now-playing-mac/"><img alt="Hits" src="https://hits.sh/github.com/3raxton/now-playing-mac.svg?color=ba11ba"/></a>
+</p>
 
-<img src="./screenshots/appicon.png" alt="Now Playing app icon" width="92px"/>
+<br>
 
-Now Playing shows the current track in your Dock and controls Spotify, Apple Music, and AmpSonic.
+## Summary
+- 🎧 Display the current track from Spotify, Apple Music, or AmpSonic in your dock
+- 🎚️ Control Spotify, Apple Music, and AmpSonic 
+- 🎉 Open source
+- 😎 If you enjoy Now Playing alongside your listening experience, feel free to <a href="https://ko-fi.com/braxtonhuff" target="_blank"> buy me a coffee</a>
 
-It appears in the Dock as **Now Playing**. In French, the Dock name is **Lecture en cours**.
+<br>
 
-https://user-images.githubusercontent.com/7284672/199579997-f417812a-1f0f-47db-b6d5-80252d60abe9.mov
+## Features
+- ⏯️ Clicking once on the Now Playing dock icon will toggle play/pause
+- ⏭️ Double clicking on the Now Playing dock icon will skip to the next track
+- 🎶 Right click / two-finger click will show the Now Playing menu, allowing you to change music players, play, pause, skip forward or skip back, and view the now playing track on click 
 
-This project continues [Groove](https://github.com/woofers/groove) by Jaxson Van Doorn, under the same MIT license.
+<br>
 
-## Usage
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/a3cde156-7d5d-4f29-b816-5b2ab0e5a26c" width="100%" controls></video>
+</div>
 
-Click the Dock icon to play or pause. Double-click it to skip to the next track.
+<br>
 
-Right-click the icon for **Playback** and **Music Player**. Playback sits next to the cursor and includes play, pause, previous, and next. The play command is labeled **Pause** while a track is playing and **Play** while it is paused.
+## How to download Now Playing
 
-Now Playing follows whichever of those apps starts playing. A player you choose in the menu stays selected until a different app starts.
+1. Click [here]() to download the latest version of Now Playing
+2. Download the .dmg file to your computer
+3. Open the ```.dmg file``` and drag the app from the .dmg folder to the ```Applications``` folder
+4. Start playing music on Spotify, Apple Music, or AmpSonic
+5. Allow Now Playing to control playback if prompted
+6. That's it! 🎉 
 
-## Configuration
+<br>
 
-Right-click the Dock icon and choose Spotify, Apple Music, or AmpSonic under **Music Player**.
+## Want to contribute to this repo? 
+Want to add something that's missing to Now Playing or have an idea? Open an issue or pull request!
 
-![Dock menu for choosing the music player](./screenshots/config.png)
+- Write some code and submit a pull request or make a suggestion as an issue
 
-## Libraries
+<br>
 
+## Support
+If you'd like to support me or say thanks for building out Now Playing, buy me a coffee on [Ko-fi](https://ko-fi.com/braxtonhuff)
+- I work on and keep open source projects like Now Playing active for free. If you like Now Playing and want to support me, feel free to donate
+- <b>I'll likely work on this project regardless, this is <ins>not</ins> required to use Now Playing</b>
+
+<br>
+
+## Licenses, Repos, and Libraries
+
+### Licenses and Repos
+
+- This project continues [Groove](https://github.com/woofers/groove) by Jaxson Van Doorn, under the same MIT license. <i><b>Jaxson, incredible work on groove, I've been using it almost daily since I found it on GitHub. Thanks for open sourcing it!</b></i>
+
+### Libraries
 - [MusicPlayer](https://github.com/ddddxxx/MusicPlayer) talks to Spotify and Apple Music for playback and track info.
+
+## That's a wrap!
+- 😎 Enjoy your upgraded listening experience on your Mac!
+- ❤️‍🔥 Tell your people you love them! 
