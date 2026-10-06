@@ -11,6 +11,6 @@
 	<key>NSSupportsSuddenTermination</key>
 	<false/>
 	<key>kTCCServiceMediaLibrary</key>
-	<string>Groove needs access to your music library.</string>
+	<string>Now Playing needs access to your music library.</string>
 </dict>
 </plist>

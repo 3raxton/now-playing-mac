@@ -30,10 +30,12 @@ class DockMenuController {
       if !nowPlaying.isEmpty() {
         let playingLabel = NSMenuItem()
         playingLabel.title = nowPlaying.playing ? "Now Playing"~ : "Paused"~
+        playingLabel.target = self
+        playingLabel.action = #selector(showPlayer)
         let songLabel = NSMenuItem()
         songLabel.title = nowPlaying.description
         songLabel.target = self
-        songLabel.action = #selector(playPause)
+        songLabel.action = #selector(showPlayer)
         songLabel.indentationLevel = 1
         return [playingLabel, songLabel, NSMenuItem.separator()]
       }
@@ -106,6 +108,10 @@ class DockMenuController {
   
   @objc func playPause() {
     self.dockController.playPause()
+  }
+
+  @objc func showPlayer() {
+    self.dockController.showPlayer()
   }
 
   @objc func nextTrack() {
