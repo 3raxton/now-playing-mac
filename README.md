@@ -1,37 +1,29 @@
+# Now Playing
 
+<img src="./screenshots/appicon.png" alt="Now Playing app icon" width="92px"/>
 
-# Groove.app
+Now Playing shows the current track in your Dock and controls Spotify, Apple Music, and AmpSonic.
 
-<img src="./screenshots/appicon.png" alt="Groove App Icon" width="92px"/>
-
-Display live track info from Spotify, Apple Music, and AmpSonic in your dock.
-
-Using NSDockTile and SwiftUI, Groove interfaces with Spotify,
-Apple Music, and AmpSonic to control and display track info.
+It appears in the Dock as **Now Playing**. In French, the Dock name is **Lecture en cours**.
 
 https://user-images.githubusercontent.com/7284672/199579997-f417812a-1f0f-47db-b6d5-80252d60abe9.mov
 
+This project continues [Groove](https://github.com/woofers/groove) by Jaxson Van Doorn, under the same MIT license.
+
 ## Usage
 
-Clicking on the Groove dock icon will toggle play/pause status.
+Click the Dock icon to play or pause. Double-click it to skip to the next track.
 
-Double clicking will advance to the next track.
+Right-click the icon for **Playback** and **Music Player**. Playback sits next to the cursor and includes play, pause, previous, and next. The play command is labeled **Pause** while a track is playing and **Play** while it is paused.
 
-## Download
-
-Latest Groove DMG can found [here](https://github.com/woofers/groove/releases).
+Now Playing follows whichever of those apps starts playing. A player you choose in the menu stays selected until a different app starts.
 
 ## Configuration
 
-To choose which music player to use,
-right click on the Groove dock tile
-and switch between Apple Music, Spotify, and AmpSonic.
+Right-click the Dock icon and choose Spotify, Apple Music, or AmpSonic under **Music Player**.
 
-![Right click of Groove app showing how to change between Apple Music and Spotify](./screenshots/config.png)
+![Dock menu for choosing the music player](./screenshots/config.png)
 
 ## Libraries
 
-Groove makes use of the following libraries:
-
-- [DSFDockTile](https://github.com/dagronf/DSFDockTile) Allows a NSViewController to be used in the DockTile.
-- [MusicPlayer](https://github.com/ddddxxx/MusicPlayer) Communicates with Spotify and Apple Music client apps to control playback and obtain track info
+- [MusicPlayer](https://github.com/ddddxxx/MusicPlayer) talks to Spotify and Apple Music for playback and track info.
