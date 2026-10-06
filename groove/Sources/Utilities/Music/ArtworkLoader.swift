@@ -75,10 +75,13 @@ class ArtworkLoader {
   }
   
   private func fetchArtwork(completion: @escaping (Result<NSImage, Error>) -> Void) {
-    if player == .appleMusic {
+    switch player {
+    case .appleMusic:
       fetchArtworkFromAppleMusic(completion: completion)
-    } else {
+    case .spotify:
       fetchArtworkFromSpotify(completion: completion)
+    case .ampSonic:
+      completion(.failure(ArtworkError.noImageData))
     }
   }
 }

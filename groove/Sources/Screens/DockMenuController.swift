@@ -41,6 +41,22 @@ class DockMenuController {
     return []
   }
   
+  private func getTransportMenu() -> [NSMenuItem] {
+    let label = NSMenuItem()
+    label.title = "Playback"~
+    let playing = dockController.getData()?.playing ?? false
+    let playback = NSMenuItem(title: (playing ? "Pause" : "Play")~, action: #selector(playPause), keyEquivalent: "")
+    playback.target = self
+    playback.indentationLevel = 1
+    let previous = NSMenuItem(title: "Previous"~, action: #selector(previousTrack), keyEquivalent: "")
+    previous.target = self
+    previous.indentationLevel = 1
+    let next = NSMenuItem(title: "Next"~, action: #selector(nextTrack), keyEquivalent: "")
+    next.target = self
+    next.indentationLevel = 1
+    return [NSMenuItem.separator(), label, playback, previous, next]
+  }
+
   private func getLabelMenu() -> [NSMenuItem] {
     let label = NSMenuItem()
     label.title = "Music Player"~
@@ -73,9 +89,10 @@ class DockMenuController {
   func getMenu() -> NSMenu? {
     let menu = getInternalMenu()
     let topMenu = getTopMenu()
+    let transport = getTransportMenu()
     let label = getLabelMenu()
     let players = getPlayersMenu()
-    menu.items = topMenu + label + players
+    menu.items = topMenu + label + players + transport
     return menu
   }
   
@@ -89,5 +106,13 @@ class DockMenuController {
   
   @objc func playPause() {
     self.dockController.playPause()
+  }
+
+  @objc func nextTrack() {
+    self.dockController.nextTrack()
+  }
+
+  @objc func previousTrack() {
+    self.dockController.previousTrack()
   }
 }

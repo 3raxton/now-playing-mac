@@ -13,6 +13,7 @@
 		A69F7A7C291097E000042243 /* DockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69F7A6B291097E000042243 /* DockData.swift */; };
 		A69F7A7D291097E000042243 /* DockViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69F7A6D291097E000042243 /* DockViewController.swift */; };
 		A69F7A7E291097E000042243 /* Applescript.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69F7A70291097E000042243 /* Applescript.swift */; };
+		A6B0C0022910A0A000042243 /* AmpSonicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B0C0012910A0A000042243 /* AmpSonicPlayer.swift */; };
 		A69F7A7F291097E000042243 /* ArtworkLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69F7A71291097E000042243 /* ArtworkLoader.swift */; };
 		A69F7A80291097E000042243 /* MusicInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69F7A72291097E000042243 /* MusicInfo.swift */; };
 		A69F7A81291097E000042243 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69F7A73291097E000042243 /* AppSettings.swift */; };
@@ -42,6 +43,7 @@
 		A69F7A6B291097E000042243 /* DockData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DockData.swift; sourceTree = "<group>"; };
 		A69F7A6D291097E000042243 /* DockViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DockViewController.swift; sourceTree = "<group>"; };
 		A69F7A70291097E000042243 /* Applescript.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Applescript.swift; sourceTree = "<group>"; };
+		A6B0C0012910A0A000042243 /* AmpSonicPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AmpSonicPlayer.swift; sourceTree = "<group>"; };
 		A69F7A71291097E000042243 /* ArtworkLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArtworkLoader.swift; sourceTree = "<group>"; };
 		A69F7A72291097E000042243 /* MusicInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MusicInfo.swift; sourceTree = "<group>"; };
 		A69F7A73291097E000042243 /* AppSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
@@ -157,6 +159,7 @@
 		A69F7A6F291097E000042243 /* Music */ = {
 			isa = PBXGroup;
 			children = (
+				A6B0C0012910A0A000042243 /* AmpSonicPlayer.swift */,
 				A69F7A70291097E000042243 /* Applescript.swift */,
 				A69F7A71291097E000042243 /* ArtworkLoader.swift */,
 				A69F7A72291097E000042243 /* MusicInfo.swift */,
@@ -291,6 +294,7 @@
 				A69F7A7C291097E000042243 /* DockData.swift in Sources */,
 				A69F7A83291097E000042243 /* FileManager.swift in Sources */,
 				A69F7A7E291097E000042243 /* Applescript.swift in Sources */,
+				A6B0C0022910A0A000042243 /* AmpSonicPlayer.swift in Sources */,
 				A69F7A85291097E000042243 /* DockController.swift in Sources */,
 				A69F7A982910981900042243 /* main.swift in Sources */,
 				A639F7AF29131EAD009965A4 /* DockTileView.swift in Sources */,
