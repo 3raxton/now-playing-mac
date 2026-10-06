@@ -73,7 +73,7 @@ If you'd like to support me or say thanks for building out Now Playing, buy me a
 
 ### Licenses and Repos
 
-- This project continues [Groove](https://github.com/woofers/groove) by Jaxson Van Doorn, under the same MIT license. <i><b>Jaxson, incredible work on groove, I've been using it almost daily since I found it on GitHub. Thanks for open sourcing it!</b></i>
+- This project continues [groove](https://github.com/woofers/groove) by Jaxson Van Doorn, under the same MIT license. <i><b>Jaxson, incredible work on groove, I've been using it almost daily since I found it on GitHub. Thanks for open sourcing it!</b></i>
 
 ### Libraries
 - [MusicPlayer](https://github.com/ddddxxx/MusicPlayer) talks to Spotify and Apple Music for playback and track info.
