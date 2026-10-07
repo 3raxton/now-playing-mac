@@ -36,7 +36,7 @@ target="_blank"><br><img width="100" src="https://camo.githubusercontent.com/135
 
 <br>
 
-## How to download Now Playing
+## How to download and install Now Playing
 
 1. Click [here](https://github.com/3raxton/now-playing-mac/releases/latest) to download the latest version of Now Playing
 2. Download the .dmg file to your computer
