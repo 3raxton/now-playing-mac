@@ -27,11 +27,21 @@ class DockData: ObservableObject, Identifiable {
   }
 
   @MainActor
-  func update(other: DockData) {
+  func update(other: DockData, force: Bool = false) {
+    // A player switch with no track yet used to replace the cover with that app's icon.
+    if !force, other.isEmpty(), !isEmpty() {
+      self.playing = other.playing
+      return
+    }
+    let songChanged = other.song != self.song
     self.artist = other.artist
     self.album = other.album
     self.song = other.song
-    self.artwork = other.artwork
+    if let artwork = other.artwork {
+      self.artwork = artwork
+    } else if songChanged {
+      self.artwork = nil
+    }
     self.playing = other.playing
   }
   

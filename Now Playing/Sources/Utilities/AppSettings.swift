@@ -13,18 +13,35 @@ class AppSettings {
     MusicInfo.PlayerApp.from(playerString())
   }
   
-  private var manualPlayerChoiceAt: TimeInterval = 0
+  /// The menu check. Automatic follow cannot replace it.
+  private var chosenPlayer: MusicInfo.PlayerApp?
+  private var manualLock = false
 
   func setPlayer(_ player: MusicInfo.PlayerApp, manual: Bool = false) {
     if manual {
-      manualPlayerChoiceAt = ProcessInfo.processInfo.systemUptime
+      manualLock = true
+      chosenPlayer = player
+      if player != self.player() {
+        UserDefaults.standard.set(player.rawValue, forKey: "player")
+      }
+      return
     }
+    if manualLock { return }
+    chosenPlayer = nil
     UserDefaults.standard.set(player.rawValue, forKey: "player")
   }
 
-  /// Keeps a menu choice in place long enough to press play before the sole playing app takes over.
-  func shouldHoldManualPlayerChoice() -> Bool {
-    manualPlayerChoiceAt > 0 && ProcessInfo.processInfo.systemUptime - manualPlayerChoiceAt < 8
+  func menuPlayer() -> MusicInfo.PlayerApp {
+    chosenPlayer ?? player()
+  }
+
+  func checkedPlayer() -> MusicInfo.PlayerApp? {
+    manualLock ? chosenPlayer : nil
+  }
+
+  /// A menu choice stays until the user picks another player or starts that player.
+  func hasManualPlayerChoice() -> Bool {
+    manualLock
   }
 
   func pausesOtherPlayers() -> Bool {

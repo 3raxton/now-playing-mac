@@ -88,7 +88,7 @@ class DockMenuController {
       let current = $0
       let title = current.rawValue
       let player = PlayerMenuItem()
-      let isCurrent = AppSettings.default.player() == current
+      let isCurrent = AppSettings.default.menuPlayer() == current
       player.state = isCurrent ? .on : .off
       player.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)
       if !isCurrent { player.setPlayer($0) }

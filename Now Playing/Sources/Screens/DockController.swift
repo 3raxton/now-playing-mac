@@ -54,22 +54,27 @@ class DockController {
 
     if elapsed <= DockController.DOUBLE_CLICK {
       self.lastClickType = .double
+      self.info?.activateCheckedPlayer()
       self.info?.perform(.skip)
       return
     }
     self.lastClickType = .normal
+    self.info?.activateCheckedPlayer()
     self.info?.perform(.playPause)
   }
 
   func playPause() {
+    self.info?.activateCheckedPlayer()
     self.info?.perform(.playPause)
   }
 
   func nextTrack() {
+    self.info?.activateCheckedPlayer()
     self.info?.perform(.skip)
   }
 
   func previousTrack() {
+    self.info?.activateCheckedPlayer()
     self.info?.perform(.previous)
   }
 

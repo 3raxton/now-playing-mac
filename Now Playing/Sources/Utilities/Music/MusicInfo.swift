@@ -13,6 +13,7 @@ class MusicInfo {
   
   private var updateView: () -> Void
   private let activity = PlayingPlayerMonitor()
+  private var previewNeedsReplace = false
 
   private var subs = Set<AnyCancellable>()
 
@@ -129,10 +130,13 @@ class MusicInfo {
     let player = AppSettings.default.player()
     guard player != name else { return }
     self.name = player
+    previewNeedsReplace = true
     resetPlayer()
+    update()
   }
 
   private func follow(_ player: PlayerApp) {
+    guard !AppSettings.default.hasManualPlayerChoice() else { return }
     guard player != name else { return }
     AppSettings.default.setPlayer(player)
   }
@@ -158,6 +162,12 @@ class MusicInfo {
 
   func getPlayer() -> PlayerApp {
     return name
+  }
+
+  /// Menu playback acts on the checked player. Checking the menu does not switch or pause.
+  func activateCheckedPlayer() {
+    guard let chosen = AppSettings.default.checkedPlayer(), chosen != name else { return }
+    AppSettings.default.setPlayer(chosen)
   }
 
   func isSpotify() -> Bool {
@@ -201,14 +211,38 @@ class MusicInfo {
   }
 
   func playPause() {
-    performAfterPausingOthers { [weak self] in
-      guard let self else { return }
-      if let ampSonic = self.ampSonic {
-        ampSonic.playPause()
-        return
+    let start = !getData().playing || !getPlaybackStatus()
+    if start {
+      if AppSettings.default.pausesOtherPlayers() {
+        let name = self.name
+        activity.keep(name)
+        DispatchQueue.global(qos: .userInitiated).async { [activity] in
+          activity.pauseOthers(except: name)
+        }
       }
-      self.player?.playPause()
+      startPlayback()
+      return
     }
+    pausePlayback()
+  }
+
+  /// Starts the checked player. A toggle would pause whichever app was already playing.
+  private func startPlayback() {
+    if let ampSonic = self.ampSonic {
+      if !ampSonic.currentTrack().playing {
+        ampSonic.playPause()
+      }
+      return
+    }
+    activity.play(name)
+  }
+
+  private func pausePlayback() {
+    if self.ampSonic != nil {
+      AmpSonicPlayer.pauseIfPlaying()
+      return
+    }
+    self.player?.pause()
   }
 
   private func performAfterPausingOthers(_ action: @escaping () -> Void) {
@@ -268,8 +302,11 @@ class MusicInfo {
       do {
         await getTrackInfo()
         let newData = DockData(artist: getArtist(), album: getAlbum(), song: getSong(), artwork: getArtwork(), playing: getPlaybackStatus())
+        if self.previewNeedsReplace, newData.isEmpty() { return }
+        let force = self.previewNeedsReplace
+        self.previewNeedsReplace = false
         if !isAppleMusic() || newData.song != "Connecting…" {
-          await self.data.update(other: newData)
+          await self.data.update(other: newData, force: force)
         }
       }
     }
@@ -428,6 +465,20 @@ private final class PlayingPlayerMonitor {
     keeper = player
   }
 
+  /// `resume` leaves Apple Music stopped. `play` starts Spotify and Apple Music from stopped or paused.
+  func play(_ player: MusicInfo.PlayerApp) {
+    guard player != .ampSonic else { return }
+    let id = player.getAppId()
+    let source = """
+    if application id "\(id)" is running then
+      tell application id "\(id)" to play
+    end if
+    """
+    DispatchQueue.global(qos: .userInitiated).async {
+      _ = Self.runAppleScript(source)
+    }
+  }
+
   func pauseOthers(except selected: MusicInfo.PlayerApp) {
     var scripts: [String] = []
     if selected != .spotify {
@@ -481,21 +532,19 @@ private final class PlayingPlayerMonitor {
     let was = wasPlaying[player] ?? false
     wasPlaying[player] = playing
     guard primed else { return false }
-    if playing, !was, AppSettings.default.pausesOtherPlayers() {
-      if AppSettings.default.shouldHoldManualPlayerChoice(), player != selected() {
-        return false
-      }
-      keeper = player
+    if playing, !was {
       let current = selected()
-      DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-        self?.pauseOthers(except: player)
-        DispatchQueue.main.async {
-          if player != current {
-            onPlaying(player)
-          }
-        }
+      let checked = AppSettings.default.hasManualPlayerChoice()
+      if player != current, !checked {
+        onPlaying(player)
       }
-      return true
+      if AppSettings.default.pausesOtherPlayers(), !checked {
+        keeper = player
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+          self?.pauseOthers(except: player)
+        }
+        return true
+      }
     }
     followSolePlayer(selected: selected, onPlaying: onPlaying)
     return false
@@ -503,7 +552,8 @@ private final class PlayingPlayerMonitor {
 
   /// A missed or ignored pause used to leave Apple Music playing for good. Try again while it is still going.
   private func pauseKeeperIfOthersStillPlaying() {
-    guard let keeper, AppSettings.default.pausesOtherPlayers(), !AppSettings.default.shouldHoldManualPlayerChoice() else { return }
+    guard let keeper, AppSettings.default.pausesOtherPlayers() else { return }
+    if AppSettings.default.hasManualPlayerChoice(), keeper != selectedPlayer?() { return }
     let others = MusicInfo.PlayerApp.allCases.filter { $0 != keeper && wasPlaying[$0] == true }
     guard !others.isEmpty else { return }
     DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -512,7 +562,7 @@ private final class PlayingPlayerMonitor {
   }
 
   private func followSolePlayer(selected: () -> MusicInfo.PlayerApp, onPlaying: (MusicInfo.PlayerApp) -> Void) {
-    guard !AppSettings.default.shouldHoldManualPlayerChoice() else { return }
+    guard !AppSettings.default.hasManualPlayerChoice() else { return }
     let playing = MusicInfo.PlayerApp.allCases.filter { wasPlaying[$0] == true }
     guard playing.count == 1, let only = playing.first, only != selected() else { return }
     onPlaying(only)
