@@ -4,5 +4,7 @@
 <dict>
 	<key>player</key>
 	<string>spotify</string>
+	<key>pauseOtherPlayers</key>
+	<true/>
 </dict>
 </plist>

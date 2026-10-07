@@ -189,9 +189,12 @@ class DockController {
     return size.width * size.height
   }
 
+  func requestAccessibility() {
+    AccessibilityPrompt.shared.show()
+  }
+
   private func accessibilityTrusted() -> Bool {
-    let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-    return AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+    AXIsProcessTrusted()
   }
   
   func getData() -> DockData? {

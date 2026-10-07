@@ -18,6 +18,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let controller = DockController()
     self.dockController = controller
     self.dockMenuController = DockMenuController(controller: controller)
+    DispatchQueue.main.async {
+      controller.requestAccessibility()
+    }
   }
 
   func applicationWillTerminate(_: Notification) {

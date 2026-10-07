@@ -9,3 +9,8 @@
 "Pause" = "Pause";
 "Previous" = "Précédent";
 "Next" = "Suivant";
+"Pause other players" = "Mettre en pause les autres lecteurs";
+"On" = "Activé";
+"Off" = "Désactivé";
+"Enable Now Playing in the Accessibility pane" = "Activez Now Playing dans le volet Accessibilité";
+"Turn on the switch in the list above to grant Accessibility access to Now Playing" = "Activez le commutateur dans la liste ci-dessus pour autoriser l'accès d'Accessibilité à Now Playing";

@@ -13,8 +13,26 @@ class AppSettings {
     MusicInfo.PlayerApp.from(playerString())
   }
   
-  func setPlayer(_ player: MusicInfo.PlayerApp) {
+  private var manualPlayerChoiceAt: TimeInterval = 0
+
+  func setPlayer(_ player: MusicInfo.PlayerApp, manual: Bool = false) {
+    if manual {
+      manualPlayerChoiceAt = ProcessInfo.processInfo.systemUptime
+    }
     UserDefaults.standard.set(player.rawValue, forKey: "player")
+  }
+
+  /// Keeps a menu choice in place long enough to press play before the sole playing app takes over.
+  func shouldHoldManualPlayerChoice() -> Bool {
+    manualPlayerChoiceAt > 0 && ProcessInfo.processInfo.systemUptime - manualPlayerChoiceAt < 8
+  }
+
+  func pausesOtherPlayers() -> Bool {
+    UserDefaults.standard.bool(forKey: "pauseOtherPlayers")
+  }
+
+  func setPausesOtherPlayers(_ enabled: Bool) {
+    UserDefaults.standard.set(enabled, forKey: "pauseOtherPlayers")
   }
   
   func resetSettings() {

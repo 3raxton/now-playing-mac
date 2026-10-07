@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import CryptoKit
 import Darwin
 import Foundation
@@ -87,7 +88,7 @@ final class AmpSonicPlayer {
   }
 
   func playPause() {
-    postKey(49, flags: [])
+    guard postKey(49, flags: []) else { return }
     lock.lock()
     track.playing.toggle()
     pendingPlaying = track.playing
@@ -100,26 +101,42 @@ final class AmpSonicPlayer {
   }
 
   func nextTrack() {
-    postKey(124, flags: .maskCommand)
+    guard postKey(124, flags: .maskCommand) else { return }
     markPlaying()
     scheduleRefresh()
   }
 
   func previousTrack() {
-    postKey(123, flags: .maskCommand)
+    guard postKey(123, flags: .maskCommand) else { return }
     markPlaying()
     scheduleRefresh()
   }
 
+  /// Pauses AmpSonic only when it is already playing, so Space does not start it.
+  static func pauseIfPlaying() {
+    guard isPlaying() else { return }
+    guard postKey(49, flags: []) else { return }
+    reportedPlaying = false
+  }
+
   /// Space toggles playback. Command-Left and Command-Right are AmpSonic's previous and next shortcuts.
-  private func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags) {
-    guard let application = NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleID).first else { return }
+  @discardableResult
+  private func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags) -> Bool {
+    Self.postKey(keyCode, flags: flags)
+  }
+
+  @discardableResult
+  private static func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags) -> Bool {
+    let trusted = AXIsProcessTrusted()
+    guard trusted else { return false }
+    guard let application = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return false }
     guard let down = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true),
-          let up = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: false) else { return }
+          let up = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: false) else { return false }
     down.flags = flags
     up.flags = flags
     down.postToPid(application.processIdentifier)
     up.postToPid(application.processIdentifier)
+    return true
   }
 
   private func markPlaying() {
@@ -142,7 +159,7 @@ final class AmpSonicPlayer {
   }
 
   private func watchPlaybackDirectory() {
-    guard let path = Self.playbackDirectory()?.path else { return }
+    let path = Self.playbackDirectory().path
     let fd = open(path, O_EVTONLY)
     guard fd >= 0 else { return }
     let source = DispatchSource.makeFileSystemObjectSource(
@@ -195,6 +212,7 @@ final class AmpSonicPlayer {
         resolved.playing = pendingPlaying
       }
     }
+    Self.reportedPlaying = resolved.playing
     let changed = resolved != track
     if changed {
       track = resolved
@@ -218,7 +236,7 @@ final class AmpSonicPlayer {
 
   private func load() -> Track {
     guard Self.isRunning() else { return Track() }
-    guard let directory = Self.playbackDirectory() else { return Track() }
+    let directory = Self.playbackDirectory()
     guard let urls = try? FileManager.default.contentsOfDirectory(
       at: directory,
       includingPropertiesForKeys: [.contentModificationDateKey]
@@ -264,9 +282,12 @@ final class AmpSonicPlayer {
     return try? JSONDecoder().decode(type, from: data)
   }
 
+  private static var reportedPlaying = false
+
   static func isPlaying() -> Bool {
     guard isRunning() else { return false }
-    guard let directory = playbackDirectory() else { return false }
+    if reportedPlaying { return true }
+    let directory = playbackDirectory()
     guard let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else {
       return false
     }
@@ -290,8 +311,7 @@ final class AmpSonicPlayer {
     let key = "\(accountID)|\(artworkID)"
     if let cached = artworkCache[key] { return cached }
     let digest = SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
-    guard let support = Self.supportDirectory() else { return nil }
-    let url = support
+    let url = Self.supportDirectory()
       .appendingPathComponent("Artwork", isDirectory: true)
       .appendingPathComponent(accountID, isDirectory: true)
       .appendingPathComponent(digest)
@@ -306,78 +326,11 @@ final class AmpSonicPlayer {
     return image
   }
 
-  private static let bookmarkKey = "ampSonicSupportBookmark"
-  private static let accessLock = NSLock()
-  private static var scopedSupportURL: URL?
-  private static var askedThisLaunch = false
-
-  private static func playbackDirectory() -> URL? {
-    supportDirectory()?.appendingPathComponent("Playback", isDirectory: true)
+  static func playbackDirectory() -> URL {
+    supportDirectory().appendingPathComponent("Playback", isDirectory: true)
   }
 
-  /// Uses a saved folder approval so macOS does not ask to read AmpSonic on every launch.
-  private static func supportDirectory() -> URL? {
-    accessLock.lock()
-    if let scopedSupportURL {
-      accessLock.unlock()
-      return scopedSupportURL
-    }
-    let stored = UserDefaults.standard.data(forKey: bookmarkKey)
-    accessLock.unlock()
-
-    if let stored {
-      var stale = false
-      if let url = try? URL(
-        resolvingBookmarkData: stored,
-        options: [.withSecurityScope],
-        relativeTo: nil,
-        bookmarkDataIsStale: &stale
-      ), url.startAccessingSecurityScopedResource() {
-        accessLock.lock()
-        scopedSupportURL = url
-        accessLock.unlock()
-        if stale, let refreshed = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
-          UserDefaults.standard.set(refreshed, forKey: bookmarkKey)
-        }
-        return url
-      }
-    }
-
-    requestAccessIfNeeded()
-    return nil
-  }
-
-  private static func requestAccessIfNeeded() {
-    DispatchQueue.main.async {
-      accessLock.lock()
-      let alreadyAsked = askedThisLaunch || scopedSupportURL != nil
-      if !alreadyAsked { askedThisLaunch = true }
-      accessLock.unlock()
-      guard !alreadyAsked else { return }
-
-      let panel = NSOpenPanel()
-      panel.canChooseFiles = false
-      panel.canChooseDirectories = true
-      panel.canCreateDirectories = false
-      panel.allowsMultipleSelection = false
-      panel.showsHiddenFiles = true
-      panel.prompt = "Allow"
-      panel.message = "Allow Now Playing to read AmpSonic so the Dock can show the current track. This is only needed once."
-      panel.directoryURL = containerSupportURL()
-      NSApp.activate(ignoringOtherApps: true)
-      panel.begin { response in
-        guard response == .OK, let url = panel.url else { return }
-        guard let data = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) else { return }
-        UserDefaults.standard.set(data, forKey: bookmarkKey)
-        _ = url.startAccessingSecurityScopedResource()
-        accessLock.lock()
-        scopedSupportURL = url
-        accessLock.unlock()
-      }
-    }
-  }
-
-  private static func containerSupportURL() -> URL {
+  private static func supportDirectory() -> URL {
     FileManager.default.homeDirectoryForCurrentUser
       .appendingPathComponent("Library/Containers", isDirectory: true)
       .appendingPathComponent(bundleID, isDirectory: true)

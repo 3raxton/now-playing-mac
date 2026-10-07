@@ -30,8 +30,6 @@ class DockMenuController {
       if !nowPlaying.isEmpty() {
         let playingLabel = NSMenuItem()
         playingLabel.title = nowPlaying.playing ? "Now Playing"~ : "Paused"~
-        playingLabel.target = self
-        playingLabel.action = #selector(showPlayer)
         let songLabel = NSMenuItem()
         songLabel.title = nowPlaying.description
         songLabel.target = self
@@ -57,6 +55,25 @@ class DockMenuController {
     next.target = self
     next.indentationLevel = 1
     return [NSMenuItem.separator(), label, playback, previous, next]
+  }
+
+  private func getPauseOthersMenu() -> [NSMenuItem] {
+    let label = NSMenuItem()
+    label.title = "Pause other players"~
+    let enabled = AppSettings.default.pausesOtherPlayers()
+    let on = settingItem(title: "On"~, selected: enabled, action: #selector(enablePauseOtherPlayers))
+    let off = settingItem(title: "Off"~, selected: !enabled, action: #selector(disablePauseOtherPlayers))
+    return [NSMenuItem.separator(), label, on, off]
+  }
+
+  private func settingItem(title: String, selected: Bool, action: Selector) -> NSMenuItem {
+    let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+    item.target = self
+    item.state = selected ? .on : .off
+    item.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)
+    item.indentationLevel = 1
+    item.isEnabled = true
+    return item
   }
 
   private func getLabelMenu() -> [NSMenuItem] {
@@ -94,14 +111,15 @@ class DockMenuController {
     let transport = getTransportMenu()
     let label = getLabelMenu()
     let players = getPlayersMenu()
-    menu.items = topMenu + label + players + transport
+    let pauseOthers = getPauseOthersMenu()
+    menu.items = topMenu + label + players + transport + pauseOthers
     return menu
   }
   
   @objc func changePlayer(sender: Any) {
     if let item = sender as? PlayerMenuItem {
       if let player = item.player {
-        AppSettings.default.setPlayer(player)
+        AppSettings.default.setPlayer(player, manual: true)
       }
     }
   }
@@ -120,5 +138,13 @@ class DockMenuController {
 
   @objc func previousTrack() {
     self.dockController.previousTrack()
+  }
+
+  @objc func enablePauseOtherPlayers() {
+    AppSettings.default.setPausesOtherPlayers(true)
+  }
+
+  @objc func disablePauseOtherPlayers() {
+    AppSettings.default.setPausesOtherPlayers(false)
   }
 }
