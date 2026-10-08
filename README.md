@@ -24,6 +24,7 @@ target="_blank"><br><img width="100" src="https://camo.githubusercontent.com/135
 - 💿 Automatically detect and show the current track from your active music player 
 - ⏯️ Clicking once on the Now Playing dock icon will toggle play/pause
 - ⏭️ Double clicking on the Now Playing dock icon will skip to the next track
+- ⏮️ Triple clicking on the Now Playing dock icon will skip to the start of the current track, or to the previous track 
 - 🎶 Right-clicking or two-finger clicking the Now Playing dock icon opens a menu to switch players, play, pause, skip, control playback of other players when multiple are playing, and open the current track
 - 💻 Clicking the track name in the menu opens that player and moves to the desktop space it is in
 - 🔇 Enabling Pause other players pauses a track that’s already playing as soon as you start one in a different app
