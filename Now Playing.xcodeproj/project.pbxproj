@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A639F7A3291301F7009965A4 /* DockMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A639F7A2291301F7009965A4 /* DockMenuController.swift */; };
 		A6B0C0112910B1000042243 /* AccessibilityPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B0C0102910B1000042243 /* AccessibilityPrompt.swift */; };
+		A6C0D0022910D1000042243 /* UpdateCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C0D0012910D1000042243 /* UpdateCheck.swift */; };
 		A639F7AF29131EAD009965A4 /* DockTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A639F7AE29131EAD009965A4 /* DockTileView.swift */; };
 		A69F7A62291097B400042243 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A69F7A61291097B400042243 /* Preview Assets.xcassets */; };
 		A69F7A7C291097E000042243 /* DockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69F7A6B291097E000042243 /* DockData.swift */; };
@@ -38,6 +39,7 @@
 /* Begin PBXFileReference section */
 		A639F7A2291301F7009965A4 /* DockMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockMenuController.swift; sourceTree = "<group>"; };
 		A6B0C0102910B1000042243 /* AccessibilityPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPrompt.swift; sourceTree = "<group>"; };
+		A6C0D0012910D1000042243 /* UpdateCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheck.swift; sourceTree = "<group>"; };
 		A639F7AE29131EAD009965A4 /* DockTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockTileView.swift; sourceTree = "<group>"; };
 		A69F7A57291097B300042243 /* Now Playing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Now Playing.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A69F7A61291097B400042243 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -142,6 +144,7 @@
 				A69F7A78291097E000042243 /* DockController.swift */,
 				A639F7AE29131EAD009965A4 /* DockTileView.swift */,
 				A639F7A2291301F7009965A4 /* DockMenuController.swift */,
+				A6C0D0012910D1000042243 /* UpdateCheck.swift */,
 				A6B0C0102910B1000042243 /* AccessibilityPrompt.swift */,
 				A69F7A6D291097E000042243 /* DockViewController.swift */,
 			);
@@ -303,6 +306,7 @@
 				A639F7AF29131EAD009965A4 /* DockTileView.swift in Sources */,
 				A69F7A81291097E000042243 /* AppSettings.swift in Sources */,
 				A639F7A3291301F7009965A4 /* DockMenuController.swift in Sources */,
+				A6C0D0022910D1000042243 /* UpdateCheck.swift in Sources */,
 				A6B0C0112910B1000042243 /* AccessibilityPrompt.swift in Sources */,
 				A69F7A7D291097E000042243 /* DockViewController.swift in Sources */,
 			);

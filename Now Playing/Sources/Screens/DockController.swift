@@ -1,20 +1,19 @@
 import ApplicationServices
 import SwiftUI
 
-enum ClickType {
-  case normal, double, none
-}
-
 class DockController {
   var dockViewController = DockViewController()
   var info: MusicInfo?
   var lastClicked = ProcessInfo.processInfo.systemUptime
-  var lastClickType: ClickType = .none
 
   /// Dock clicks sometimes arrive twice. A second event this soon is the same click.
-  static let IGNORE_CLICK = 0.09
-  /// A second click inside this window skips. A slower one pauses or plays.
-  static let DOUBLE_CLICK = 0.3
+  static let sameClick = 0.09
+  /// Clicks closer than this are one gesture: two skips, three goes back.
+  static let clickGap = 0.3
+  private var clicks = 0
+  private var serial = 0
+  /// After skip or back, ignore the rest of that gesture so the other command cannot run.
+  private var ignoreUntil = 0.0
   
   lazy var updateDockTile: DockTileView = {
     dockViewController.loadView()
@@ -30,12 +29,9 @@ class DockController {
   }
 
   func updateTile() {
-    let data = self.info?.getData()
-    Task { [weak self] in
-      await self?.dockViewController.update(data)
-      DispatchQueue.main.async { [weak self] in
-        self?.updateDockTile.display()
-      }
+    dockViewController.update(info?.getData())
+    DispatchQueue.main.async { [weak self] in
+      self?.updateDockTile.display()
     }
   }
 
@@ -46,21 +42,45 @@ class DockController {
     }
 
     let now = ProcessInfo.processInfo.systemUptime
+    if now < self.ignoreUntil {
+      return
+    }
     let elapsed = now - self.lastClicked
-    if elapsed <= DockController.IGNORE_CLICK {
+    if self.clicks > 0, elapsed <= DockController.sameClick {
       return
     }
     self.lastClicked = now
 
-    if elapsed <= DockController.DOUBLE_CLICK {
-      self.lastClickType = .double
+    if self.clicks == 0 || elapsed > DockController.clickGap {
+      self.clicks = 1
+      self.serial += 1
+      let serial = self.serial
       self.info?.activateCheckedPlayer()
-      self.info?.perform(.skip)
+      self.info?.perform(.playPause)
+      DispatchQueue.main.asyncAfter(deadline: .now() + DockController.clickGap) { [weak self] in
+        guard let self, self.serial == serial else { return }
+        self.clicks = 0
+      }
       return
     }
-    self.lastClickType = .normal
+
+    self.clicks += 1
+    self.serial += 1
+    let serial = self.serial
     self.info?.activateCheckedPlayer()
-    self.info?.perform(.playPause)
+    if self.clicks >= 3 {
+      self.clicks = 0
+      self.ignoreUntil = now + DockController.clickGap
+      self.info?.previousResumingPlayback()
+      return
+    }
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + DockController.clickGap) { [weak self] in
+      guard let self, self.serial == serial, self.clicks == 2 else { return }
+      self.clicks = 0
+      self.ignoreUntil = ProcessInfo.processInfo.systemUptime + DockController.clickGap
+      self.info?.skipResumingPlayback()
+    }
   }
 
   func playPause() {

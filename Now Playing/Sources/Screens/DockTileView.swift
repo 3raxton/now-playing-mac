@@ -42,10 +42,13 @@ public class DockBaseType {
 
 public class DockTileView: DockBaseType {
   internal weak var viewController: NSViewController?
+  /// Last tile that actually drew. A blank SwiftUI frame would otherwise show the app icon.
+  private let backing = NSImageView()
 
   public init(_ viewController: NSViewController, dockTile: NSDockTile = NSApp.dockTile) {
     self.viewController = viewController
     super.init(dockTile: dockTile)
+    backing.imageScaling = .scaleAxesIndependently
   }
 
   public func display() {
@@ -57,12 +60,63 @@ public class DockTileView: DockBaseType {
       return
     }
 
-    // Make sure the docktile is showing our view
     if tile.contentView !== vc.view {
       tile.contentView = vc.view
     }
+    let bounds = NSRect(origin: .zero, size: tile.size)
+    vc.view.frame = bounds
+    if backing.superview !== vc.view {
+      vc.view.addSubview(backing, positioned: .below, relativeTo: nil)
+    }
+    backing.frame = bounds
+    for subview in vc.view.subviews where subview !== backing {
+      subview.frame = bounds
+      subview.layoutSubtreeIfNeeded()
+      subview.frame = bounds
+      if let drawn = capture(subview) {
+        backing.image = drawn
+      }
+    }
 
-    // And update the docktile display
     tile.display()
+  }
+
+  /// Draws one view. A clear frame is ignored so the previous cover stays up.
+  private func capture(_ view: NSView) -> NSImage? {
+    let bounds = view.bounds
+    guard bounds.width > 1, bounds.height > 1 else { return nil }
+    guard let rep = view.bitmapImageRepForCachingDisplay(in: bounds) else { return nil }
+    view.cacheDisplay(in: bounds, to: rep)
+    guard repHasPixels(rep) else { return nil }
+    let image = NSImage(size: bounds.size)
+    image.addRepresentation(rep)
+    return image
+  }
+
+  private func repHasPixels(_ rep: NSBitmapImageRep) -> Bool {
+    guard let data = rep.bitmapData else { return false }
+    let width = rep.pixelsWide
+    let height = rep.pixelsHigh
+    guard width > 0, height > 0 else { return false }
+    let bytesPerPixel = max(rep.bitsPerPixel / 8, 1)
+    let step = max(1, min(width, height) / 16)
+    var opaque = 0
+    var samples = 0
+    for y in stride(from: 0, to: height, by: step) {
+      for x in stride(from: 0, to: width, by: step) {
+        let offset = y * rep.bytesPerRow + x * bytesPerPixel
+        let alpha: UInt8
+        if !rep.hasAlpha {
+          alpha = 255
+        } else if rep.bitmapFormat.contains(.alphaFirst) {
+          alpha = data[offset]
+        } else {
+          alpha = data[offset + bytesPerPixel - 1]
+        }
+        if alpha > 20 { opaque += 1 }
+        samples += 1
+      }
+    }
+    return samples > 0 && opaque * 5 > samples
   }
 }

@@ -7,9 +7,9 @@ class DockViewController: NSViewController {
     view = NSView()
     if let data = dockData {
       let content = DockImage().environmentObject(data)
-      let view = NSHostingView(rootView: content)
-      view.frame = NSRect(x: 0, y: 0, width: 128, height: 128)
-      self.view.addSubview(view)
+      let hosting = NSHostingView(rootView: content)
+      hosting.frame = NSRect(x: 0, y: 0, width: 128, height: 128)
+      self.view.addSubview(hosting)
     }
   }
 

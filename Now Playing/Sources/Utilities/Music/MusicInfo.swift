@@ -1,19 +1,25 @@
 import Combine
 import Darwin
-import MusicPlayer
+import LXMusicPlayer
 import SwiftUI
 
 class MusicInfo {
   private var name: PlayerApp
   private var data: DockData
   
-  private var player: MusicPlayers.Scriptable?
+  private var player: LXScriptingMusicPlayer?
   private var ampSonic: AmpSonicPlayer?
   private var loader: ArtworkLoader?
   
   private var updateView: () -> Void
   private let activity = PlayingPlayerMonitor()
+  private var artworkTicket = 0
+  private var updateSerial = 0
+  private var shownPlaying: (playing: Bool, until: TimeInterval)?
+  private var bufferTimer: Timer?
   private var previewNeedsReplace = false
+  /// Song whose cover is still loading after a player switch. Keeps the current image up.
+  private var coverHoldSong: String?
 
   private var subs = Set<AnyCancellable>()
 
@@ -43,7 +49,7 @@ class MusicInfo {
       }
     }
     
-    func getInternalPlayer() -> MusicPlayerName? {
+    func scriptingName() -> LXScriptingMusicPlayer.Name? {
       switch self {
       case .spotify:
         return .spotify
@@ -74,6 +80,7 @@ class MusicInfo {
     self.data = DockData(artist: "", album: "", song: "", artwork: nil, playing: false)
     self.updateView = updateView
     NotificationCenter.default.addObserver(self, selector: #selector(userDefaultsDidChange), name: UserDefaults.didChangeNotification, object: nil)
+    NotificationCenter.default.addObserver(self, selector: #selector(manualPlayerChoice(_:)), name: AppSettings.manualPlayerChoice, object: nil)
     setUpPlayer()
     activity.start(selected: { [weak self] in
       self?.name ?? .spotify
@@ -83,7 +90,7 @@ class MusicInfo {
   }
   
   private func setUpPlayer() {
-    guard let scriptable = name.getInternalPlayer() else {
+    guard let scriptingName = name.scriptingName() else {
       self.player = nil
       self.loader = nil
       let ampSonic = AmpSonicPlayer { [weak self] in
@@ -94,27 +101,33 @@ class MusicInfo {
       return
     }
 
-    self.player = MusicPlayers.Scriptable(name: scriptable)
+    guard let player = LXScriptingMusicPlayer(name: scriptingName) else { return }
+    self.player = player
     self.loader = ArtworkLoader(player: name)
-    
-    if let controller = self.player {
-      Publishers.CombineLatest(controller.currentTrackWillChange, controller.playbackStateWillChange)
-        .throttle(for: .milliseconds(200),
-                  scheduler: DispatchQueue.main,
-                  latest: true)
-        .sink { [weak self] event in
-          let next = event.0
-          let state = event.1
-          if (state == .stopped || (next == nil && state == .playing(time: 0))) && (self?.isSpotify() ?? false) {
-            return
-          }
-          self?.update()
+
+    // Watch the scripting player directly. Bridging its track into MusicTrack
+    // copies a Scripting Bridge object and traps on this OS.
+    Publishers.CombineLatest(
+      player.publisher(for: \.currentTrack),
+      player.publisher(for: \.playerState)
+    )
+    .throttle(for: .milliseconds(200), scheduler: DispatchQueue.main, latest: true)
+    .sink { [weak self] track, state in
+      guard let self else { return }
+      if self.isSpotify() {
+        let starting = track == nil && state.isPlaying() && state.playbackTime() == 0
+        if state.state() == .stopped || starting {
+          return
         }
-        .store(in: &subs)
+      }
+      self.update()
     }
+    .store(in: &subs)
   }
   
   private func tearDownPlayer() {
+    bufferTimer?.invalidate()
+    bufferTimer = nil
     for sub in subs { sub.cancel() }
     subs.removeAll()
     ampSonic?.stop()
@@ -126,6 +139,11 @@ class MusicInfo {
     setUpPlayer()
   }
   
+  @objc private func manualPlayerChoice(_ notification: Notification) {
+    guard let raw = notification.userInfo?["player"] as? String else { return }
+    activity.arm(PlayerApp.from(raw))
+  }
+
   @objc func userDefaultsDidChange(_ notification: Notification) {
     let player = AppSettings.default.player()
     guard player != name else { return }
@@ -142,15 +160,87 @@ class MusicInfo {
   }
 
   func update() {
-    Task { [weak self] in
-      do {
-        await self?.fetch()
-        self?.updateView()
+    let song = getSong()
+    let artist = getArtist()
+    let album = getAlbum()
+    let buffering = ampSonic?.currentTrack().buffering == true
+    let audible = ampSonic?.isAudible() == true
+    let reported = getPlaybackStatus()
+    let image = getArtwork()
+    let dropStaleCover = ampSonic?.shouldDropStaleCover() == true && image == nil
+    let songChanged = !song.isEmpty && (song != data.song || artist != data.artist || album != data.album)
+    let switching = previewNeedsReplace
+    if switching, image == nil, data.artwork != nil, !song.isEmpty, !dropStaleCover {
+      coverHoldSong = song
+    } else if image != nil || song != coverHoldSong {
+      coverHoldSong = nil
+    }
+    let holdingCover = coverHoldSong == song && image == nil
+    // The new player's cover is not in the loader yet. Keep the current one so the app icon does not flash.
+    let clearArtwork = dropStaleCover || (image == nil && songChanged && !holdingCover)
+    let artwork = image ?? (clearArtwork ? nil : data.artwork)
+    let stillBuffering = buffering && !audible && !reported
+    if previewNeedsReplace, !reported, !stillBuffering, song == "" { return }
+    let force = previewNeedsReplace
+    previewNeedsReplace = false
+    updateSerial += 1
+    let serial = updateSerial
+    Task { @MainActor [weak self] in
+      guard let self, self.updateSerial == serial else { return }
+      let next = DockData(
+        artist: artist,
+        album: album,
+        song: song,
+        artwork: artwork,
+        playing: stillBuffering ? false : self.displayedPlaying(reported || audible),
+        buffering: stillBuffering
+      )
+      if stillBuffering { self.shownPlaying = nil }
+      let previousArtwork = self.data.artwork
+      if let artwork, artwork !== previousArtwork {
+        _ = artwork.cgImage(forProposedRect: nil, context: nil, hints: nil)
+      }
+      if !self.isAppleMusic() || next.song != "Connecting…" {
+        self.data.update(other: next, force: force, clearArtwork: clearArtwork)
+      }
+      self.syncBufferTimer()
+      self.updateView()
+      if let artwork, artwork !== previousArtwork {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+          self?.updateView()
+        }
+      }
+    }
+    refreshArtwork(for: song, dropIfMissing: holdingCover)
+  }
+
+  /// The dock title updates before the cover. A skip should not wait on the image.
+  private func refreshArtwork(for song: String, dropIfMissing: Bool = false) {
+    guard loader != nil, !song.isEmpty else { return }
+    artworkTicket += 1
+    let ticket = artworkTicket
+    Task.detached { [weak self] in
+      guard let self else { return }
+      try? await self.loader?.getArtworkAsync()
+      let image = self.getArtwork()
+      await MainActor.run {
+        guard self.artworkTicket == ticket, self.getSong() == song else { return }
+        if let image {
+          self.coverHoldSong = nil
+          self.data.artwork = image
+          self.updateView()
+        } else if dropIfMissing {
+          self.coverHoldSong = nil
+          self.data.artwork = nil
+          self.updateView()
+        }
       }
     }
   }
 
   func destroy() {
+    bufferTimer?.invalidate()
+    bufferTimer = nil
     activity.stop()
     tearDownPlayer()
     NotificationCenter.default.removeObserver(self, name: UserDefaults.didChangeNotification, object: nil)
@@ -210,8 +300,42 @@ class MusicInfo {
     return getData().isEmpty()
   }
 
+  /// Set when a Dock click pauses AmpSonic. The second click of a double-click skips, and that pause has to be undone or the next song stays stopped.
+  private var undoAmpSonicPause = false
+
   func playPause() {
+    if let ampSonic {
+      if ampSonic.currentTrack().buffering {
+        if ampSonic.isAudible() || ampSonic.isAwaitingAudio() { return }
+        undoAmpSonicPause = false
+        if ampSonic.play() {
+          showBuffering()
+        }
+        return
+      }
+      let start = !getData().playing || !getPlaybackStatus()
+      if start {
+        undoAmpSonicPause = false
+        if AppSettings.default.pausesOtherPlayers() {
+          let name = self.name
+          activity.keep(name)
+          DispatchQueue.global(qos: .userInitiated).async { [activity] in
+            activity.pauseOthers(except: name)
+          }
+        }
+        if ampSonic.playPause() {
+          showBuffering()
+        }
+        return
+      }
+      undoAmpSonicPause = true
+      showPlaying(false)
+      pausePlayback()
+      return
+    }
+    undoAmpSonicPause = false
     let start = !getData().playing || !getPlaybackStatus()
+    showPlaying(start)
     if start {
       if AppSettings.default.pausesOtherPlayers() {
         let name = self.name
@@ -230,7 +354,7 @@ class MusicInfo {
   private func startPlayback() {
     if let ampSonic = self.ampSonic {
       if !ampSonic.currentTrack().playing {
-        ampSonic.playPause()
+        _ = ampSonic.playPause()
       }
       return
     }
@@ -238,48 +362,170 @@ class MusicInfo {
   }
 
   private func pausePlayback() {
-    if self.ampSonic != nil {
-      AmpSonicPlayer.pauseIfPlaying()
+    if let ampSonic {
+      ampSonic.pauseFromUser()
       return
     }
     self.player?.pause()
   }
 
-  private func performAfterPausingOthers(_ action: @escaping () -> Void) {
-    guard AppSettings.default.pausesOtherPlayers() else {
-      action()
+  /// Double-click skips. The first click already paused AmpSonic, so play again after the skip.
+  func skipResumingPlayback() {
+    let resume = undoAmpSonicPause
+    undoAmpSonicPause = false
+    if let ampSonic {
+      if ampSonic.nextTrack() {
+        showBuffering()
+      }
+      if resume {
+        _ = ampSonic.play()
+        showBuffering()
+      }
+      pauseOthersAlongside()
       return
     }
-    let name = self.name
-    activity.keep(name)
-    DispatchQueue.global(qos: .userInitiated).async { [activity] in
-      activity.pauseOthers(except: name)
-      DispatchQueue.main.async(execute: action)
+    nextTrack()
+  }
+
+  /// Triple-click goes back, including from the middle of a song.
+  /// One Previous there only returns to the start. Rewind first, then leave the song.
+  func previousResumingPlayback() {
+    let resume = undoAmpSonicPause
+    undoAmpSonicPause = false
+    if let ampSonic {
+      let inMiddle = ampSonic.currentTrack().elapsed > 2
+      if ampSonic.previousTrack() {
+        showBuffering()
+      }
+      if inMiddle {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+          guard let self else { return }
+          if self.ampSonic?.previousTrack() == true {
+            self.showBuffering()
+          }
+          if resume {
+            _ = self.ampSonic?.play()
+            self.showBuffering()
+          }
+        }
+      } else if resume {
+        _ = ampSonic.play()
+        showBuffering()
+      }
+      pauseOthersAlongside()
+      return
+    }
+    if (player?.playbackTime ?? 0) > 1.5 {
+      player?.playbackTime = 0
+    }
+    previousTrack()
+    if !self.getPlaybackStatus(), self.isAppleMusic() {
+      self.player?.playPause()
     }
   }
 
   func nextTrack() {
-    performAfterPausingOthers { [weak self] in
-      guard let self else { return }
-      if let ampSonic = self.ampSonic {
-        ampSonic.nextTrack()
-        return
+    undoAmpSonicPause = false
+    if let ampSonic {
+      if ampSonic.nextTrack() {
+        showBuffering()
       }
-      self.player?.skipToNextItem()
-      if !self.getPlaybackStatus(), self.isAppleMusic() {
-        self.player?.playPause()
-      }
+      pauseOthersAlongside()
+      return
+    }
+    showPlaying(true)
+    pauseOthersAlongside()
+    self.player?.skipToNextItem()
+    if !self.getPlaybackStatus(), self.isAppleMusic() {
+      self.player?.playPause()
     }
   }
 
   func previousTrack() {
-    performAfterPausingOthers { [weak self] in
-      guard let self else { return }
-      if let ampSonic = self.ampSonic {
-        ampSonic.previousTrack()
-        return
+    undoAmpSonicPause = false
+    if let ampSonic {
+      if ampSonic.previousTrack() {
+        showBuffering()
       }
-      self.player?.skipToPreviousItem()
+      pauseOthersAlongside()
+      return
+    }
+    showPlaying(true)
+    pauseOthersAlongside()
+    self.player?.skipToPreviousItem()
+  }
+
+  /// The icon changes with the click. A late player report must not put the old icon back.
+  private func showPlaying(_ playing: Bool) {
+    shownPlaying = (playing, ProcessInfo.processInfo.systemUptime + 1)
+    let apply = { [weak self] in
+      guard let self else { return }
+      self.data.playing = playing
+      self.data.buffering = false
+      self.syncBufferTimer()
+      self.updateView()
+    }
+    if Thread.isMainThread {
+      apply()
+    } else {
+      DispatchQueue.main.async(execute: apply)
+    }
+  }
+
+  /// Dock tiles do not animate on their own. Step the spinner until the song's time moves.
+  private func showBuffering() {
+    shownPlaying = nil
+    let apply = { [weak self] in
+      guard let self else { return }
+      self.data.playing = false
+      self.data.buffering = true
+      self.syncBufferTimer()
+      self.updateView()
+    }
+    if Thread.isMainThread {
+      apply()
+    } else {
+      DispatchQueue.main.async(execute: apply)
+    }
+  }
+
+  private func syncBufferTimer() {
+    if data.buffering {
+      guard bufferTimer == nil else { return }
+      let timer = Timer(timeInterval: 1.0 / 15.0, repeats: true) { [weak self] _ in
+        guard let self else { return }
+        guard self.data.buffering else {
+          self.bufferTimer?.invalidate()
+          self.bufferTimer = nil
+          return
+        }
+        self.data.bufferSpin = (self.data.bufferSpin + 24).truncatingRemainder(dividingBy: 360)
+        self.updateView()
+      }
+      bufferTimer = timer
+      RunLoop.main.add(timer, forMode: .common)
+    } else {
+      bufferTimer?.invalidate()
+      bufferTimer = nil
+    }
+  }
+
+  private func displayedPlaying(_ reported: Bool) -> Bool {
+    guard let shownPlaying else { return reported }
+    if reported == shownPlaying.playing || ProcessInfo.processInfo.systemUptime >= shownPlaying.until {
+      self.shownPlaying = nil
+      return reported
+    }
+    return shownPlaying.playing
+  }
+
+  /// Skip should not wait on the other players. Pause them while the track changes.
+  private func pauseOthersAlongside() {
+    guard AppSettings.default.pausesOtherPlayers() else { return }
+    let name = self.name
+    activity.keep(name)
+    DispatchQueue.global(qos: .userInitiated).async { [activity] in
+      activity.pauseOthers(except: name)
     }
   }
 
@@ -296,50 +542,11 @@ class MusicInfo {
     }
   }
 
-  @discardableResult
-  func fetch() async -> DockData {
-    let task = Task {
-      do {
-        await getTrackInfo()
-        let newData = DockData(artist: getArtist(), album: getAlbum(), song: getSong(), artwork: getArtwork(), playing: getPlaybackStatus())
-        if self.previewNeedsReplace, newData.isEmpty() { return }
-        let force = self.previewNeedsReplace
-        self.previewNeedsReplace = false
-        if !isAppleMusic() || newData.song != "Connecting…" {
-          await self.data.update(other: newData, force: force)
-        }
-      }
-    }
-    _ = await task.result
-    return data
-  }
-
-  private func delay(_ delay: TimeInterval) async {
-    let nano = UInt64(delay * 1_000_000_000)
-    try? await Task.sleep(nanoseconds: nano)
-  }
-
-  private func getTrackInfo() async {
-    do {
-      try await loader?.getArtworkAsync()
-    } catch {
-      print(error)
-    }
-  }
-
   private func internalPlaybackStatus() -> Bool {
     if let ampSonic {
       return ampSonic.currentTrack().playing
     }
-    if let state = player?.playbackState {
-      switch state {
-      case .playing:
-        return true
-      default:
-        return false
-      }
-    }
-    return false
+    return player?.playerState.isPlaying() == true
   }
 }
 
@@ -350,6 +557,8 @@ private final class PlayingPlayerMonitor {
   private var primed = false
   private var pollInFlight = false
   private var keeper: MusicInfo.PlayerApp?
+  private var trackID: [MusicInfo.PlayerApp: String] = [:]
+  private var baselineTicket: [MusicInfo.PlayerApp: Int] = [:]
   private var selectedPlayer: (() -> MusicInfo.PlayerApp)?
   private var playerStarted: ((MusicInfo.PlayerApp) -> Void)?
   private let playbackNotice = PlaybackNotice()
@@ -361,8 +570,8 @@ private final class PlayingPlayerMonitor {
       guard let self else { return }
       self.selectedPlayer = selected
       self.playerStarted = onPlaying
-      self.playbackNotice.onChange = { [weak self] player, playing in
-        self?.note(player, playing: playing)
+      self.playbackNotice.onChange = { [weak self] player, playing, track in
+        self?.note(player, playing: playing, track: track)
       }
       self.playbackNotice.start()
       self.watchAmpSonic()
@@ -374,8 +583,38 @@ private final class PlayingPlayerMonitor {
     }
   }
 
-  private func note(_ player: MusicInfo.PlayerApp, playing: Bool) {
-    consider(player, playing: playing, selected: { [weak self] in
+  private func noteAmpSonic() {
+    let track = AppSettings.default.hasManualPlayerChoice() ? AmpSonicPlayer.currentTrackID() : nil
+    note(.ampSonic, playing: AmpSonicPlayer.isPlaying(), track: track)
+  }
+
+  /// Remember the song already playing so the next one in the checked app pauses the others.
+  func arm(_ player: MusicInfo.PlayerApp) {
+    let ticket = (baselineTicket[player] ?? 0) + 1
+    baselineTicket[player] = ticket
+    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+      let baseline = Self.currentTrackID(player)
+      DispatchQueue.main.async { [weak self] in
+        guard let self, self.baselineTicket[player] == ticket else { return }
+        let seen = self.trackID[player]
+        if self.trackID[player] == nil, let baseline, !baseline.isEmpty {
+          self.trackID[player] = baseline
+        }
+        self.baselineTicket[player] = nil
+        guard let seen, let baseline, !baseline.isEmpty, seen != baseline else { return }
+        guard AppSettings.default.checkedPlayer() == player else { return }
+        AppSettings.default.releaseManualPlayerChoice()
+        guard AppSettings.default.pausesOtherPlayers() else { return }
+        self.keeper = player
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+          self?.pauseOthers(except: player)
+        }
+      }
+    }
+  }
+
+  private func note(_ player: MusicInfo.PlayerApp, playing: Bool, track: String? = nil) {
+    consider(player, playing: playing, track: track, selected: { [weak self] in
       self?.selectedPlayer?() ?? .spotify
     }, onPlaying: { [weak self] started in
       self?.playerStarted?(started)
@@ -391,7 +630,7 @@ private final class PlayingPlayerMonitor {
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: .write, queue: .main)
         source.setEventHandler { [weak self] in
           self?.watchAmpSonic()
-          self?.note(.ampSonic, playing: AmpSonicPlayer.isPlaying())
+          self?.noteAmpSonic()
         }
         source.setCancelHandler { close(fd) }
         source.resume()
@@ -413,7 +652,7 @@ private final class PlayingPlayerMonitor {
         queue: .main
       )
       source.setEventHandler { [weak self] in
-        self?.note(.ampSonic, playing: AmpSonicPlayer.isPlaying())
+        self?.noteAmpSonic()
       }
       source.setCancelHandler { close(fd) }
       source.resume()
@@ -528,17 +767,27 @@ private final class PlayingPlayerMonitor {
   }
 
   @discardableResult
-  private func consider(_ player: MusicInfo.PlayerApp, playing: Bool, selected: () -> MusicInfo.PlayerApp, onPlaying: @escaping (MusicInfo.PlayerApp) -> Void) -> Bool {
+  private func consider(_ player: MusicInfo.PlayerApp, playing: Bool, track: String? = nil, selected: () -> MusicInfo.PlayerApp, onPlaying: @escaping (MusicInfo.PlayerApp) -> Void) -> Bool {
+    let previousTrack = trackID[player]
+    if let track, !track.isEmpty {
+      trackID[player] = track
+    }
     let was = wasPlaying[player] ?? false
     wasPlaying[player] = playing
     guard primed else { return false }
-    if playing, !was {
+    let chosen = AppSettings.default.checkedPlayer()
+    let choseThis = chosen == player
+    // A new song in the checked player counts even when that app was already playing.
+    let trackChanged = playing && choseThis && previousTrack != nil && track != nil && track != previousTrack
+    if playing, !was || trackChanged {
       let current = selected()
-      let checked = AppSettings.default.hasManualPlayerChoice()
-      if player != current, !checked {
+      if player != current, chosen == nil {
         onPlaying(player)
       }
-      if AppSettings.default.pausesOtherPlayers(), !checked {
+      if choseThis {
+        AppSettings.default.releaseManualPlayerChoice()
+      }
+      if AppSettings.default.pausesOtherPlayers(), chosen == nil || choseThis {
         keeper = player
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
           self?.pauseOthers(except: player)
@@ -566,6 +815,24 @@ private final class PlayingPlayerMonitor {
     let playing = MusicInfo.PlayerApp.allCases.filter { wasPlaying[$0] == true }
     guard playing.count == 1, let only = playing.first, only != selected() else { return }
     onPlaying(only)
+  }
+
+  private static func currentTrackID(_ player: MusicInfo.PlayerApp) -> String? {
+    if player == .ampSonic {
+      return AmpSonicPlayer.currentTrackID()
+    }
+    let id = player.getAppId()
+    let source = """
+    if application id "\(id)" is running then
+      tell application id "\(id)"
+        if player state is playing then
+          return (name of current track) & character id 1 & (artist of current track)
+        end if
+      end tell
+    end if
+    """
+    let value = runAppleScript(source)
+    return value?.isEmpty == false ? value : nil
   }
 
   private static func isApplicationPlaying(_ name: String) -> Bool {
@@ -596,7 +863,7 @@ private final class PlayingPlayerMonitor {
 
 /// Spotify and Apple Music post these the moment playback changes.
 private final class PlaybackNotice: NSObject {
-  var onChange: ((MusicInfo.PlayerApp, Bool) -> Void)?
+  var onChange: ((MusicInfo.PlayerApp, Bool, String?) -> Void)?
 
   func start() {
     let center = DistributedNotificationCenter.default()
@@ -622,17 +889,25 @@ private final class PlaybackNotice: NSObject {
 
   @objc private func spotify(_ note: Notification) {
     guard let playing = Self.playing(note) else { return }
-    onChange?(.spotify, playing)
+    onChange?(.spotify, playing, Self.track(note))
   }
 
   @objc private func music(_ note: Notification) {
     guard let playing = Self.playing(note) else { return }
-    onChange?(.appleMusic, playing)
+    onChange?(.appleMusic, playing, Self.track(note))
   }
 
   private static func playing(_ note: Notification) -> Bool? {
     let state = (note.userInfo?["Player State"] as? String) ?? (note.userInfo?["Playback State"] as? String)
     guard let state else { return nil }
     return state.caseInsensitiveCompare("Playing") == .orderedSame
+  }
+
+  private static func track(_ note: Notification) -> String? {
+    let info = note.userInfo
+    let name = info?["Name"] as? String ?? ""
+    let artist = info?["Artist"] as? String ?? ""
+    guard !name.isEmpty || !artist.isEmpty else { return nil }
+    return "\(name)\u{1}\(artist)"
   }
 }

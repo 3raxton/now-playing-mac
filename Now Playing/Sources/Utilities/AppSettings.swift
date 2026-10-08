@@ -16,6 +16,7 @@ class AppSettings {
   /// The menu check. Automatic follow cannot replace it.
   private var chosenPlayer: MusicInfo.PlayerApp?
   private var manualLock = false
+  static let manualPlayerChoice = Notification.Name("ManualPlayerChoice")
 
   func setPlayer(_ player: MusicInfo.PlayerApp, manual: Bool = false) {
     if manual {
@@ -24,6 +25,11 @@ class AppSettings {
       if player != self.player() {
         UserDefaults.standard.set(player.rawValue, forKey: "player")
       }
+      NotificationCenter.default.post(
+        name: Self.manualPlayerChoice,
+        object: nil,
+        userInfo: ["player": player.rawValue]
+      )
       return
     }
     if manualLock { return }
@@ -42,6 +48,12 @@ class AppSettings {
   /// A menu choice stays until the user picks another player or starts that player.
   func hasManualPlayerChoice() -> Bool {
     manualLock
+  }
+
+  /// The checked player started, so later playback can follow and pause again.
+  func releaseManualPlayerChoice() {
+    manualLock = false
+    chosenPlayer = nil
   }
 
   func pausesOtherPlayers() -> Bool {
