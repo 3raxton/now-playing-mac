@@ -387,28 +387,15 @@ class MusicInfo {
     nextTrack()
   }
 
-  /// Triple-click goes back, including from the middle of a song.
-  /// One Previous there only returns to the start. Rewind first, then leave the song.
+  /// Triple-click goes back. In the middle of a song, start it over. Near the beginning, play the previous one.
   func previousResumingPlayback() {
     let resume = undoAmpSonicPause
     undoAmpSonicPause = false
     if let ampSonic {
-      let inMiddle = ampSonic.currentTrack().elapsed > 2
       if ampSonic.previousTrack() {
         showBuffering()
       }
-      if inMiddle {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-          guard let self else { return }
-          if self.ampSonic?.previousTrack() == true {
-            self.showBuffering()
-          }
-          if resume {
-            _ = self.ampSonic?.play()
-            self.showBuffering()
-          }
-        }
-      } else if resume {
+      if resume {
         _ = ampSonic.play()
         showBuffering()
       }
@@ -417,6 +404,16 @@ class MusicInfo {
     }
     if (player?.playbackTime ?? 0) > 1.5 {
       player?.playbackTime = 0
+      showPlaying(true)
+      if !getPlaybackStatus() {
+        if isAppleMusic() {
+          player?.playPause()
+        } else {
+          activity.play(name)
+        }
+      }
+      pauseOthersAlongside()
+      return
     }
     previousTrack()
     if !self.getPlaybackStatus(), self.isAppleMusic() {
